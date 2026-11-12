@@ -1,0 +1,14 @@
+# À fusionner dans le docker-compose de CyclAI.
+services:
+  garmin:
+    image: cyclai-garmin
+    restart: unless-stopped
+    environment:
+      GARMIN_API_KEY: "${GARMIN_API_KEY}"                  # Garmin Connect > Paramètres > API personnelle
+      CYCLAI_PLUGIN_SECRET: "${CYCLAI_PLUGIN_GARMIN_SECRET}" # le même secret que côté CyclAI
+    # Aucun port publié : seul CyclAI (même réseau compose) parle au plugin.
+
+  cyclai-ui:
+    environment:
+      CYCLAI_PLUGINS: "garmin=http://garmin:8080"
+      CYCLAI_PLUGIN_GARMIN_SECRET: "${CYCLAI_PLUGIN_GARMIN_SECRET}"
