@@ -263,7 +263,7 @@ impl Garmin {
             return Err(PluginError::new(400, "identifiant d'activité invalide"));
         }
         let res = self
-            .send_get(&format!("{API_BASE}/download-service/files/activity/{activity_id}"), &[], "application/zip, application/octet-stream")
+            .send_get(&format!("{API_BASE}/download-service/files/activity/{activity_id}"), &[], "*/*")
             .await?;
         let status = res.status();
         if status == reqwest::StatusCode::NOT_FOUND || status == reqwest::StatusCode::NO_CONTENT {
@@ -273,7 +273,7 @@ impl Garmin {
             return Err(PluginError::upstream(format!("téléchargement Garmin refusé (HTTP {status})")));
         }
         let bytes = res.bytes().await.map_err(unreachable)?.to_vec();
-        extract_fit(bytes).map(Some).map_err(|e| PluginError::upstream(format!("{e:#}")))
+        extract_fit(bytes).map_err(|e| PluginError::upstream(format!("{e:#}")))
     }
 }
 
@@ -302,20 +302,28 @@ fn to_listed(raw: Vec<RawActivity>, after_epoch: i64) -> Vec<ListedActivity> {
 }
 
 /// The ZIP Garmin returns holds the original `.fit`; a bare FIT is accepted too.
-fn extract_fit(bytes: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+/// A file counts as FIT by its name or by its header (`..FIT` at offset 8), and
+/// `None` means the archive has no FIT file at all (an activity without a
+/// device file, e.g. entered by hand or imported from elsewhere).
+fn extract_fit(bytes: Vec<u8>) -> anyhow::Result<Option<Vec<u8>>> {
+    let is_fit = |b: &[u8]| b.len() > 12 && &b[8..12] == b".FIT";
     if !bytes.starts_with(b"PK") {
-        return Ok(bytes);
+        return Ok(if is_fit(&bytes) { Some(bytes) } else { None });
     }
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes))?;
+    let mut names = Vec::new();
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        if file.name().to_lowercase().ends_with(".fit") {
-            let mut out = Vec::new();
-            file.read_to_end(&mut out)?;
-            return Ok(out);
+        let name = file.name().to_string();
+        let mut out = Vec::new();
+        file.read_to_end(&mut out)?;
+        if name.to_lowercase().ends_with(".fit") || is_fit(&out) {
+            return Ok(Some(out));
         }
+        names.push(name);
     }
-    anyhow::bail!("aucun fichier .fit dans l'archive Garmin")
+    eprintln!("no FIT file in the Garmin archive (entries: {names:?})");
+    Ok(None)
 }
 
 #[cfg(test)]
@@ -384,10 +392,12 @@ mod tests {
             zip.write_all(b"FITDATA").unwrap();
             zip.finish().unwrap();
         }
-        assert_eq!(extract_fit(buf.into_inner()).unwrap(), b"FITDATA");
-        assert_eq!(extract_fit(b"raw".to_vec()).unwrap(), b"raw");
+        assert_eq!(extract_fit(buf.into_inner()).unwrap().unwrap(), b"FITDATA");
+        let bare = b"      .FITxxxx".to_vec();
+        assert_eq!(extract_fit(bare.clone()).unwrap(), Some(bare));
+        assert_eq!(extract_fit(b"<html>".to_vec()).unwrap(), None);
         let mut empty = std::io::Cursor::new(Vec::new());
         zip::ZipWriter::new(&mut empty).finish().unwrap();
-        assert!(extract_fit(empty.into_inner()).is_err());
+        assert_eq!(extract_fit(empty.into_inner()).unwrap(), None);
     }
 }
