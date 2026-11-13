@@ -24,7 +24,7 @@ Puis fusionne [docker-compose.example.yml](docker-compose.example.yml) dans le c
 
 ## Ce qui est importé
 
-`cycling`/`road_biking` (Ride), `indoor_cycling`/`virtual_ride` (VirtualRide), `running`/`treadmill_running`/`track_running` (Run), `trail_running`/`ultra_run` (TrailRun). Le gravel, le VTT et les activités saisies à la main sont ignorés.
+`cycling`/`road_biking` (Ride), `gravel_cycling` (GravelRide), `indoor_cycling`/`virtual_ride` (VirtualRide), `running`/`treadmill_running`/`track_running` (Run), `trail_running`/`ultra_run` (TrailRun). Le VTT et les activités saisies à la main sont ignorés.
 
 ## Développement
 

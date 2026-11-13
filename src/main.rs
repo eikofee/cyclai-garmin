@@ -27,7 +27,7 @@ impl Plugin for GarminPlugin {
             id: "garmin".into(),
             label: "Garmin Connect".into(),
             version: env!("CARGO_PKG_VERSION").into(),
-            sports: ["Ride", "VirtualRide", "Run", "TrailRun"].map(String::from).to_vec(),
+            sports: ["Ride", "GravelRide", "VirtualRide", "Run", "TrailRun"].map(String::from).to_vec(),
             configured,
             message: (!configured).then(|| "définis GARMIN_API_KEY dans le conteneur du plugin".to_string()),
             activity_url: Some("https://connect.garmin.com/modern/activity/{id}".into()),

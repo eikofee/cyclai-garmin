@@ -61,6 +61,7 @@ enum PageError {
 pub fn map_sport(type_key: &str) -> Option<&'static str> {
     match type_key {
         "cycling" | "road_biking" => Some("Ride"),
+        "gravel_cycling" => Some("GravelRide"),
         "indoor_cycling" | "virtual_ride" => Some("VirtualRide"),
         "running" | "treadmill_running" | "track_running" => Some("Run"),
         "trail_running" | "ultra_run" => Some("TrailRun"),
@@ -336,7 +337,7 @@ mod tests {
         assert_eq!(map_sport("indoor_cycling"), Some("VirtualRide"));
         assert_eq!(map_sport("treadmill_running"), Some("Run"));
         assert_eq!(map_sport("trail_running"), Some("TrailRun"));
-        assert_eq!(map_sport("gravel_cycling"), None);
+        assert_eq!(map_sport("gravel_cycling"), Some("GravelRide"));
         assert_eq!(map_sport("mountain_biking"), None);
         assert_eq!(map_sport("swimming"), None);
     }
